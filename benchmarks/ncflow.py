@@ -16,8 +16,8 @@ from lib.algorithms import NcfEpi
 from lib.problem import Problem
 from lib.runtime_utils import parallelized_rt
 
-TOP_DIR = "ncflow-logs"
-OUTPUT_CSV_TEMPLATE = "ncflow-{}-{}.csv"
+TOP_DIR = "logs/ncflow-logs"
+OUTPUT_CSV_TEMPLATE = "logs/ncflow-{}-{}.csv"
 
 # Sweep topos and traffic matrices for that topo. For each combo, record the
 # runtime and total flow for each algorithm

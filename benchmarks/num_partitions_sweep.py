@@ -15,7 +15,7 @@ from lib.algorithms import NcfEpi
 from lib.problem import Problem
 from lib.partitioning.utils import all_partitions_contiguous
 
-TOP_DIR = "num-parts-sweep-logs"
+TOP_DIR = "logs/num-parts-sweep-logs"
 TOPOLOGY = "Kdl.graphml"
 TM_MODEL = "uniform"
 SCALE_FACTOR = 32.0

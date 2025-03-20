@@ -20,8 +20,8 @@ from lib.partitioning.leader_election import LeaderElection
 ###
 
 
-TOP_DIR = "ncflow-logs"
-OUTPUT_CSV_TEMPLATE = "ncflow_nocross-{}-{}.csv"
+TOP_DIR = "logs/ncflow-logs"
+OUTPUT_CSV_TEMPLATE = "logs/ncflow_nocross-{}-{}.csv"
 
 # Sweep topos and traffic matrices for that topo. For each combo, record the
 # runtime and total flow for each algorithm

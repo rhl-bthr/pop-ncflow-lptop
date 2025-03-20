@@ -13,7 +13,7 @@ sys.path.append("..")
 from lib.algorithms import TopFormulation, Objective
 from lib.problem import Problem
 
-TOP_DIR = "top-form-logs"
+TOP_DIR = "logs/top-form-logs"
 HEADERS = [
     "problem",
     "num_nodes",
@@ -35,7 +35,7 @@ HEADERS = [
 ]
 PLACEHOLDER = ",".join("{}" for _ in HEADERS)
 
-OUTPUT_CSV_TEMPLATE = "top-form-{}-{}.csv"
+OUTPUT_CSV_TEMPLATE = "logs/top-form-{}-{}.csv"
 
 # Sweep topos and traffic matrices for that topo. For each combo, record the
 # runtime and total flow for each algorithm

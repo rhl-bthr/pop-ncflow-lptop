@@ -15,7 +15,7 @@ from lib.algorithms import NcfEpi
 from lib.partitioning.leader_election import LeaderElection
 from lib.problem import Problem
 
-TOP_DIR = "ncflow-leader-election-logs"
+TOP_DIR = "logs/ncflow-leader-election-logs"
 OUTPUT_CSV = "ncflow-leader-election.csv"
 
 # Sweep topos and traffic matrices for that topo. For each combo, record the

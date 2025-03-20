@@ -14,7 +14,7 @@ sys.path.append("..")
 from lib.algorithms import CSPF, Objective
 from lib.problem import Problem
 
-TOP_DIR = "cspf-logs"
+TOP_DIR = "logs/cspf-logs"
 HEADERS = [
     "problem",
     "num_nodes",
@@ -34,7 +34,7 @@ HEADERS = [
 ]
 PLACEHOLDER = ",".join("{}" for _ in HEADERS)
 
-OUTPUT_CSV_TEMPLATE = "cspf-{}-{}.csv"
+OUTPUT_CSV_TEMPLATE = "logs/cspf-{}-{}.csv"
 
 # Sweep topos and traffic matrices for that topo. For each combo, record the
 # runtime and total flow for each algorithm

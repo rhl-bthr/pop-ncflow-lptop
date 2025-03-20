@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-from benchmark_helpers import get_args_and_problems, print_, PATH_FORM_HYPERPARAMS
+from benchmark_helpers import get_args_and_problems, print_, OD_DUAL_HYPERPARAMS
 
 import os
 import pickle
@@ -10,10 +10,10 @@ import sys
 
 sys.path.append("..")
 
-from lib.algorithms import PathFormulation, Objective
+from lib.algorithms import ODDualFormulation, Objective
 from lib.problem import Problem
 
-TOP_DIR = "logs/path-form-logs"
+TOP_DIR = "logs/od-dual-logs"
 HEADERS = [
     "problem",
     "num_nodes",
@@ -33,12 +33,12 @@ HEADERS = [
 ]
 PLACEHOLDER = ",".join("{}" for _ in HEADERS)
 
-OUTPUT_CSV_TEMPLATE = "logs/path-form-{}-{}.csv"
+OUTPUT_CSV_TEMPLATE = "logs/od-dual-{}-{}.csv"
 
 # Sweep topos and traffic matrices for that topo. For each combo, record the
 # runtime and total flow for each algorithm
 def benchmark(problems, output_csv, obj):
-    num_paths, edge_disjoint, dist_metric = PATH_FORM_HYPERPARAMS
+    num_paths, edge_disjoint, dist_metric = OD_DUAL_HYPERPARAMS
     with open(output_csv, "a") as results:
         print_(",".join(HEADERS), file=results)
         for problem_name, topo_fname, tm_fname in problems:
@@ -63,20 +63,20 @@ def benchmark(problems, output_csv, obj):
 
             try:
                 print_(
-                    "\nPath formulation, objective {}, {} paths, edge disjoint {}, dist metric {}".format(
+                    "\nOD dual, objective {}, {} paths, edge disjoint {}, dist metric {}".format(
                         obj, num_paths, edge_disjoint, dist_metric
                     )
                 )
                 with open(
                     os.path.join(
                         run_dir,
-                        "{}-path-formulation_objective-{}_{}-paths_edge-disjoint-{}_dist-metric-{}.txt".format(
+                        "{}-od-dual_objective-{}_{}-paths_edge-disjoint-{}_dist-metric-{}.txt".format(
                             problem_name, obj, num_paths, edge_disjoint, dist_metric
                         ),
                     ),
                     "w",
                 ) as log:
-                    pf = PathFormulation(
+                    pf = ODDualFormulation(
                         objective=Objective.get_obj_from_str(obj),
                         num_paths=num_paths,
                         edge_disjoint=edge_disjoint,
@@ -85,13 +85,10 @@ def benchmark(problems, output_csv, obj):
                     )
                     pf.solve(problem)
                     pf_sol_dict = pf.sol_dict
-                    print("***************")
-                    print(pf.sol_dict)
-                    print("***************")
                     with open(
                         os.path.join(
                             run_dir,
-                            "{}-path-formulation_objective-{}_{}-paths_edge-disjoint-{}_dist-metric-{}_sol-dict.pkl".format(
+                            "{}-od-dual_objective-{}_{}-paths_edge-disjoint-{}_dist-metric-{}_sol-dict.pkl".format(
                                 problem_name, obj, num_paths, edge_disjoint, dist_metric
                             ),
                         ),
@@ -108,7 +105,7 @@ def benchmark(problems, output_csv, obj):
                     problem.traffic_matrix.model,
                     len(problem.commodity_list),
                     total_demand,
-                    "path_formulation",
+                    "od_dual",
                     num_paths,
                     edge_disjoint,
                     dist_metric,
@@ -120,7 +117,7 @@ def benchmark(problems, output_csv, obj):
 
             except Exception:
                 print_(
-                    "Path formulation, objective {}, {} paths, edge disjoint {}, dist metric {}, Problem {}, traffic seed {}, traffic model {} failed".format(
+                    "OD dual, objective {}, {} paths, edge disjoint {}, dist metric {}, Problem {}, traffic seed {}, traffic model {} failed".format(
                         obj,
                         num_paths,
                         edge_disjoint,

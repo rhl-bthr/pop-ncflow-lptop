@@ -10,3 +10,4 @@ traffic-matrices/
 traffic-matrices.zip
 .vscode
 .DS_Store
+logs/

@@ -4,7 +4,7 @@ from collections import defaultdict
 from ..graph_utils import compute_in_or_out_flow
 import sys
 from itertools import permutations
-from networkx.algorithms.community import coverage as cov
+#from networkx.algorithms.community import coverage as cov
 
 
 # Serialize topology and partition_vector to graphml file, to visualize in
@@ -31,13 +31,13 @@ def to_np_arr(arr):
     return arr if isinstance(arr, np.ndarray) else np.array(arr)
 
 
-def coverage(prob, p_v):
-    def convert_to_list_of_sets(p_v):
-        return [
-            set(np.argwhere(p_v == part_id).flatten()) for part_id in np.unique(p_v)
-        ]
+# def coverage(prob, p_v):
+#     def convert_to_list_of_sets(p_v):
+#         return [
+#             set(np.argwhere(p_v == part_id).flatten()) for part_id in np.unique(p_v)
+#         ]
 
-    return cov(prob.G, convert_to_list_of_sets(p_v))
+#     return cov(prob.G, convert_to_list_of_sets(p_v))
 
 
 def size_of_largest_partition(p_v):

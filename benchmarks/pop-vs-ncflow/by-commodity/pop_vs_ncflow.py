@@ -18,8 +18,8 @@ from lib.problem import Problem
 from lib.graph_utils import check_feasibility
 from lib.graph_utils import compute_in_or_out_flow
 
-TOP_DIR = "pop-vs-ncflow-logs"
-OUTPUT_CSV_TEMPLATE = "pop-vs-ncflow-{}.csv"
+TOP_DIR = "logs/pop-vs-ncflow-logs"
+OUTPUT_CSV_TEMPLATE = "logs/pop-vs-ncflow-{}.csv"
 
 HEADERS = [
     "k",

@@ -25,6 +25,7 @@ TM_MODELS = [
 SCALE_FACTORS = [1.0]
 
 PATH_FORM_HYPERPARAMS = (4, True, "min-hop")
+OD_DUAL_HYPERPARAMS = (4, True, "min-hop")
 NCFLOW_HYPERPARAMS = {
     'B4.json': (4, True, 'min-hop', FMPartitioning, 3),
     'UsCarrier.json': (4, True, 'min-hop', FMPartitioning, 3),

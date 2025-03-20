@@ -14,7 +14,7 @@ sys.path.append("..")
 from lib.algorithms import SMORE
 from lib.problem import Problem
 
-TOP_DIR = "smore-logs"
+TOP_DIR = "logs/smore-logs"
 HEADERS = [
     "problem",
     "num_nodes",

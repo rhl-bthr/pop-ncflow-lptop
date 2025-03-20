@@ -17,8 +17,8 @@ from lib.problem import Problem
 from lib.graph_utils import check_feasibility
 
 
-TOP_DIR = "pop-logs"
-OUTPUT_CSV_TEMPLATE = "pop-{}-{}.csv"
+TOP_DIR = "logs/pop-logs"
+OUTPUT_CSV_TEMPLATE = "logs/pop-{}-{}.csv"
 
 # Sweep topos and traffic matrices for that topo. For each combo, record the
 # runtime and total flow for each algorithm
