@@ -136,9 +136,9 @@ if __name__ == "__main__":
 
     args, output_csv, problems = get_args_and_problems(OUTPUT_CSV_TEMPLATE)
 
-    if args.dry_run:
-        print("Problems to run:")
-        for problem in problems:
-            print(problem)
-    else:
+    print("Problems to run:")
+    for problem in problems:
+        print(problem)
+    
+    if not args.dry_run:
         benchmark(problems, output_csv, args.obj)

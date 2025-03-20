@@ -17,6 +17,7 @@ PROBLEM_NAMES = [
     'UsCarrier.json',
     'Kdl.json',
     'ASN2k.json',
+    '2-node.json'
 ]
 TM_MODELS = [
     "real",
@@ -57,6 +58,16 @@ for problem_name in PROBLEM_NAMES:
                 (topo_fname, tm_fname)
             )
             PROBLEMS.append((problem_name, topo_fname, tm_fname))
+        for tm_fname in iglob(
+            "{}/{}/{}*_traffic-matrix.txt".format(TM_DIR, model, problem_name)
+        ):
+            vals = os.path.basename(tm_fname)[:-4].split("_")
+            _, traffic_seed, scale_factor = vals[1], int(vals[2]), float(vals[3])
+            GROUPED_BY_PROBLEMS[(problem_name, model, scale_factor)].append(
+                (topo_fname, tm_fname)
+            )
+            PROBLEMS.append((problem_name, topo_fname, tm_fname))
+
         for tm_fname in iglob(
             "{}/holdout/{}/{}*_traffic-matrix.pkl".format(
                 TM_DIR, model, problem_name
@@ -106,7 +117,7 @@ def get_problems(args):
                 problems.append((problem_name, topo_fname, tm_fname))
     if not problems:
         raise Exception('Traffic matrices not found')
-    return problems[args.slice_start:args.slice_stop]
+    return problems[args.slice_start:min([len(problems), args.slice_stop])]
 
 
 class AlgoClsAction(argparse.Action):
@@ -170,10 +181,10 @@ def get_args_and_problems(
             default="all",
         )
         parser.add_argument(
-            "--slice-start", type=int, default = 28
+            "--slice-start", type=int, default = 0
         )
         parser.add_argument(
-            "--slice-stop", type=int, default = 36 
+            "--slice-stop", type=int, default = 2
         )
     else:
         parser.add_argument("--tm-model", type=str, choices=TM_MODELS, required=True)

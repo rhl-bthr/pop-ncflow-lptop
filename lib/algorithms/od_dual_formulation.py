@@ -256,26 +256,39 @@ class ODDualFormulation(AbstractFormulation):
 
         all_paths = self.get_paths(problem)
         edge_to_path_ids = defaultdict(list)
-        demands_to_path_ids = defaultdict(list)
-        x_r = defaultdict(int)
+        path_ids_to_edge = defaultdict(list)
+        sites_to_path_ids = defaultdict(list)
+        path_id_to_min_capacity = defaultdict(lambda: 10000000)
+        edge_to_capacity = defaultdict(int)
+        sites_to_demand = defaultdict(int)
+
+        for u, v, c_e in self._problem.G.edges.data("capacity"):
+            edge_to_capacity[(u, v)] = c_e
+                
+
+        xr_old = defaultdict(int)
+        xr_new = defaultdict(int)
         all_paths_dicty = {}
         path_ids = 0
 
+
         for k, (s_k, t_k, d_k) in self.commodity_list:
+            sites_to_demand[(s_k, t_k)] = d_k
             paths = all_paths[(s_k, t_k)]
             for path in paths:
                 all_paths_dicty[path_ids] = path
-                x_r[path_ids] = 0
-                demands_to_path_ids[(s_k, t_k, d_k)].append(path_ids)
-
+                xr_old[path_ids] = d_k*10000
+                sites_to_path_ids[(s_k, t_k)].append(path_ids)
                 for edge in path_to_edge_list(path):
+                    path_id_to_min_capacity[path_ids] = min(path_id_to_min_capacity[path_ids], edge_to_capacity[edge])
                     edge_to_path_ids[edge].append(path_ids)
+                    path_ids_to_edge[path_ids].append(edge)
                 path_ids += 1
 
         
 
-        mu_old = defaultdict(int)
-        nu_old = defaultdict(int)
+        mu_old = defaultdict(lambda: 5)
+        nu_old = defaultdict(lambda: 10)
 
         mu_new = defaultdict(int)
         nu_new = defaultdict(int)
@@ -285,15 +298,49 @@ class ODDualFormulation(AbstractFormulation):
 
         round = 0
         while True:
-            x_r[]
-            if has_matrix_converged(old_matrix, new_matrix):
+            epsilon = 0.9
+            eta = 0.5
+            for edge in edge_to_path_ids:
+                sum_xr = 0
+                for path_id in edge_to_path_ids[edge]:
+                    sum_xr += xr_old[path_ids]
+                mu_new[edge] = max(mu_old[edge] + epsilon * (max(sum_xr - (eta * edge_to_capacity[edge]), 0)), 0)
+            
+            for site in sites_to_path_ids:
+                sum_xr = 0
+                for path_id in sites_to_path_ids[site]:
+                    sum_xr += xr_old[path_id]
+
+                nu_new[site] = max(nu_old[site] + epsilon * (max(sites_to_demand[site] - sum_xr, 0)), 0)
+            
+            for path_id in all_paths_dicty:
+                sum_mu = 0
+                sum_nu = 0
+                for edge in path_ids_to_edge[path_id]:
+                    sum_mu += mu_new[edge]
+                sum_nu = nu_new[(all_paths_dicty[path_id][0], all_paths_dicty[path_id][-1])]
+
+                if sum_mu <= sum_nu: 
+                    xr_new[path_id] = 0
+                if sum_mu == sum_nu:
+                    xr_new[path_id] = path_id_to_min_capacity[path_id]
+                else:
+                    xr_new[path_id] = min(1/(sum_mu - sum_nu), path_id_to_min_capacity[path_id])
+                print("Round:", round, "path_id:", path_id, "sum_mu:", sum_mu, "sum_nu:", sum_nu, "xr:", xr_new[path_id])
+            
+            # print("Demand expecting to serve:", xr_new)
+
+            xr_old = xr_new.copy()
+            nu_old = nu_new.copy()
+            mu_old = mu_new.copy()
+
+            if round == 10:
                 break
             else:
                 round+=1
-        
             
 
-        return self._solver.solve_lp(num_threads=num_threads)
+        # return self._solver.solve_lp(num_threads=num_threads)
 
     def pre_solve(self, problem=None):
         if problem is None:
@@ -311,8 +358,8 @@ class ODDualFormulation(AbstractFormulation):
         self._all_paths = []
 
         paths_dict = self.get_paths(problem)
-        print("self.commodity_list", self.commodity_list)
-        print("self.paths_dict", paths_dict)
+        # print("self.commodity_list", self.commodity_list)
+        # print("self.paths_dict", paths_dict)
         
         path_i = 0
         for k, (s_k, t_k, d_k) in self.commodity_list:
@@ -337,7 +384,7 @@ class ODDualFormulation(AbstractFormulation):
 
     def _construct_lp(self, sat_flows=[]):
         edge_to_paths, num_paths = self.pre_solve()
-        print("Edges to paths", edge_to_paths)
+        # print("Edges to paths", edge_to_paths)
         return self._construct_path_lp(
             self._problem.G, edge_to_paths, num_paths, sat_flows
         )
