@@ -4,8 +4,6 @@ import re
 from collections import defaultdict
 
 import numpy as np
-import math
-import json
 from gurobipy import GRB, Model, quicksum
 
 from ..config import TOPOLOGIES_DIR
@@ -18,7 +16,7 @@ from .abstract_formulation import AbstractFormulation, Objective
 PATHS_DIR = os.path.join(TOPOLOGIES_DIR, "paths", "path-form")
 
 
-class ODDualFormulation(AbstractFormulation):
+class ODPrimalFormulation(AbstractFormulation):
     @classmethod
     def new_total_flow(
         cls, num_paths, edge_disjoint=True, dist_metric="inv-cap", out=None
@@ -218,7 +216,7 @@ class ODDualFormulation(AbstractFormulation):
 
     @staticmethod
     def read_paths_from_disk_or_compute(problem, num_paths, edge_disjoint, dist_metric):
-        paths_fname = ODDualFormulation.paths_full_fname(
+        paths_fname = ODPrimalFormulation.paths_full_fname(
             problem, num_paths, edge_disjoint, dist_metric
         )
         print("Loading paths from pickle file", paths_fname)
@@ -233,7 +231,7 @@ class ODDualFormulation(AbstractFormulation):
                 return paths_dict
         except FileNotFoundError:
             print("Unable to find {}".format(paths_fname))
-            paths_dict = ODDualFormulation.compute_paths(
+            paths_dict = ODPrimalFormulation.compute_paths(
                 problem, num_paths, edge_disjoint, dist_metric
             )
             print("Saving paths to pickle file")
@@ -243,7 +241,7 @@ class ODDualFormulation(AbstractFormulation):
 
     def get_paths(self, problem):
         if not hasattr(self, "_paths_dict"):
-            self._paths_dict = ODDualFormulation.read_paths_from_disk_or_compute(
+            self._paths_dict = ODPrimalFormulation.read_paths_from_disk_or_compute(
                 problem, self._num_paths, self.edge_disjoint, self.dist_metric
             )
         return self._paths_dict
@@ -253,9 +251,9 @@ class ODDualFormulation(AbstractFormulation):
     ###############################
 
     def solve(self, problem, num_threads=NUM_CORES):
-        MAX_ROUNDS = 20000
+        MAX_ROUNDS = 10
+        EPSILON = 0.5
         ETA = 1
-        NORMALIZATION = 1000
         self._problem = problem
         self._solver = self._construct_lp([])
 
@@ -268,21 +266,17 @@ class ODDualFormulation(AbstractFormulation):
         sites_to_demand = defaultdict(int)
 
         for u, v, c_e in self._problem.G.edges.data("capacity"):
-            edge_to_capacity[(u, v)] = c_e / NORMALIZATION
+            edge_to_capacity[(u, v)] = c_e
                 
 
         xr_old = defaultdict(int)
         xr_new = defaultdict(int)
-
-        xr_bar_new = defaultdict(int)
-        xr_bar_old = defaultdict(int)
-
         all_paths_dicty = {}
         path_ids = 0
 
 
         for k, (s_k, t_k, d_k) in self.commodity_list:
-            sites_to_demand[(s_k, t_k)] = d_k / NORMALIZATION
+            sites_to_demand[(s_k, t_k)] = d_k
             paths = all_paths[(s_k, t_k)]
             for path in paths:
                 all_paths_dicty[path_ids] = path
@@ -294,99 +288,9 @@ class ODDualFormulation(AbstractFormulation):
                     path_ids_to_edge[path_ids].append(edge)
                 path_ids += 1
 
-        mu_old = defaultdict(lambda: 100)
-        nu_old = defaultdict(lambda: 10)
-        beta_old = defaultdict(lambda: 10)
-
-        mu_new = defaultdict(int)
-        nu_new = defaultdict(int)
-        beta_new = defaultdict(int)
-
-        def has_matrix_converged(old_matrix, new_matrix):
-            return True
-
-        # xr_old[0] = 10000/3
-        # xr_old[1] = 5000/3
-        # xr_old[2] = 10000/3
-
-        print("xr_init:", dict(xr_old), "mu_old:", dict(mu_old), "nu_old:", dict(nu_old), "beta_old:", dict(beta_old))
-
-        round = 1
-        while True:
-            EPSILON = min(0.5/(min(round, 10)), 0.009)
-            # EPSILON = (MAX_ROUNDS - round)/(4 * MAX_ROUNDS)
-
-            for edge in edge_to_path_ids:
-                sum_xr = 0
-                for path_id in edge_to_path_ids[edge]:
-                    sum_xr += xr_old[path_id]
-                mu_new[edge] = max(mu_old[edge] + EPSILON * (sum_xr - (ETA * edge_to_capacity[edge])), 0)
-
-            for site in sites_to_path_ids:
-                sum_xr = 0
-                for path_id in sites_to_path_ids[site]:
-                    sum_xr += xr_old[path_id]
-
-                nu_new[site] = max(nu_old[site] + EPSILON * (sites_to_demand[site] - sum_xr), 0)
-            
-            for path_id in all_paths_dicty:
-                beta_new[path_id] = max(beta_old[path_id] - (EPSILON * xr_old[path_id]), 0)
-            
-            for path_id in all_paths_dicty:
-                sum_mu = 0
-                sum_nu = 0
-                for edge in path_ids_to_edge[path_id]:
-                    sum_mu += mu_new[edge]
-                sum_nu = nu_new[(all_paths_dicty[path_id][0], all_paths_dicty[path_id][-1])]
-
-                denominator = sum_mu - sum_nu #+ beta_new[path_id]
-                # print("path_id:", path_id, "denominator:", denominator, "sum_mu:", sum_mu, "sum_nu:", sum_nu)
-                max_allocation = path_id_to_min_capacity[path_id]
-                if denominator <= 0:
-                    xr_new[path_id] = max_allocation
-                # elif denominator < 0:
-                #     xr_new[path_id] = max_allocation
-                else:
-                    xr_new[path_id] = min(1/(denominator), max_allocation)
-                    # xr_new[path_id] = min((1 - EPSILON) * xr_old[path_id] + EPSILON * (min(1/(denominator), max_allocation)), max_allocation)
-                    if path_id not in xr_bar_old:
-                        xr_bar_new[path_id] = (1/round) * xr_new[path_id] 
-                    else:
-                        xr_bar_new[path_id] = (1 - (1/round)) * xr_bar_old[path_id] + (1/round) * xr_new[path_id] 
-            
-            # print(round, ",", xr_bar_new[0], ",", xr_bar_new[1], ",", xr_bar_new[2], ",", xr_new[0], ",", xr_new[1], ",", xr_new[2], ",", mu_new[(0, 1)], ",", mu_new[(1, 2)], ",", nu_new[(0, 1)], ",", nu_new[(0, 2)], ",", nu_new[(1, 2)])
-            print(round, ",", sum([math.log(xr_new[x] * NORMALIZATION) for x in range(len(xr_new))]), ",", sum([xr_new[x] * NORMALIZATION for x in range(len(xr_new))]), ",", len(xr_new) , ",", [xr_new[x] * NORMALIZATION for x in range(len(xr_new))] )#, ",", [mu_new[x] for x in mu_new], ",", [nu_new[x] for x in nu_new])
-
-
-            # print("######", xr_new, xr_old)
-            xr_old = xr_new.copy()
-            xr_bar_old = xr_bar_new.copy()
-            # print("######", xr_new, xr_old)
-            nu_old = nu_new.copy()
-            mu_old = mu_new.copy()
-            beta_old = beta_new.copy()
-
-            if round == MAX_ROUNDS:
-                break
-            else:
-                round+=1
-            
-        mu_modified = defaultdict(dict)
-        nu_modified = defaultdict(dict)
-        for key in mu_new:
-            mu_modified[key[0]][key[1]] = mu_new[key]
-        for key in nu_new:
-            nu_modified[key[0]][key[1]] = nu_new[key]
-
-
-        with open("mu.json", 'w') as file:
-            json.dump(mu_modified, file, indent=4)
         
-        with open("nu.json", 'w') as file:
-            json.dump(nu_modified, file, indent=4)
 
-
-        # return self._solver.solve_lp(num_threads=num_threads)
+        return self._solver.solve_lp(num_threads=num_threads)
 
     def pre_solve(self, problem=None):
         if problem is None:
